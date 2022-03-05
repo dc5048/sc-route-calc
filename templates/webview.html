@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <meta charset="utf-8">
+        <title>Stanton Starmap</title>
+        <style> body { margin: 0; } </style>
+        <link rel="stylesheet" href="static/webview.css">
+    </head>
+    <body>
+        <script src='static/js/animate.js' type='module'> </script>
+        <script>
+            /* Set the width of the sidebar to 250px (show it) */
+            function openNav() {
+                mySidepanel.style.width = "300px";
+            }
+
+            /* Set the width of the sidebar to 0 (hide it) */
+            function closeNav() {
+                mySidepanel.style.width = "0";
+            }
+        </script>
+
+        <div id="container">
+            <div id="mySidepanel" class="sidepanel">
+                <form autocomplete='off' class='sidepanel_form' onSubmit="return false">
+                    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+                </form>
+            </div>
+            <button class="openbtn" onclick="openNav()" position=absolute style="top:0">&#9776; Controls</button>
+        </div>
+    </body>
+</html>
