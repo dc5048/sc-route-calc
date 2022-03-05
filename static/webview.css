@@ -58,3 +58,23 @@
 .openbtn:hover {
     background-color: #444;
 } 
+
+/* heads up display (telemetry) text style */
+[class*="hud"] {
+    color: red;
+    background-color: black;
+    opacity: 0.75;
+    position: fixed;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 16px;
+}
+.hud0 {
+    bottom: 0px
+}
+.hud1{ 
+    bottom: 18px
+}
+.hud2{ 
+    bottom: 36px
+}

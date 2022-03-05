@@ -20,35 +20,45 @@ function init() {
     camera.position.y = -8e4;
     camera.position.z = 3e4;
 
+    // Stanton sun object properties
+    let coords = [1302000, 0, 2923345];
+    let radius = 696e3
+    const stanton_color = 0xFF8800
+
+    // scene lighting
+    const light = new THREE.AmbientLight( stanton_color, 0.10); // sunlight 
+    scene.add( light )
+    const pointlight = new THREE.PointLight( stanton_color, 2 );
+    pointlight.position.set(coords[0]/orbit_factor, 
+                            coords[1]/orbit_factor, 
+                            coords[2]/orbit_factor);
+    scene.add( pointlight );
+
     // Set up the renderer
     renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
 
-    // Event calbacks
+    // mouse double-click event calback
     document.addEventListener('dblclick', onDocumentDblClick, false);
 
     // cause display to resize with window
     window.addEventListener( 'resize', onWindowResize, false );
 
-    // scene lighting
-    const light = new THREE.AmbientLight( 0xffffff, 0.5 ); // soft white
-    scene.add( light )
-    const directionalLight = new THREE.DirectionalLight( 0xffffff, 1 );
-    directionalLight.position.set( 0, 100, 0 );
-    scene.add( directionalLight );
-
     // Mouse Camera Controls
     controls = new OrbitControls( camera, renderer.domElement );
 
+    // onscreen text
+    hud0.childNodes[0].textContent = "To begin, double-click the origin of your Quantum Travel";
+    hud1.childNodes[0].textContent = "Click and drag to rotate/pan, scroll to zoom";
+    hud2.childNodes[0].textContent = "Aaron Halo Intercept Calculator";
+    
     // ****************
     // geometry
     // ****************
-    
-    // Stanton
-    let coords = [1302000, 0, 2923345];
-    let radius = 696e3
-    let stanton = make_orbital_body(radius,0xFF8800,coords,0,'stanton'); 
+
+    // Stanton star
+    let stanton = make_orbital_body(radius,stanton_color,coords,0,'stanton'); 
 
     // Hurston
     coords = [12850457,0,0];
@@ -84,13 +94,18 @@ function init() {
 
 function make_orbital_body(radius,colour,coords,show_orbit,name) {
     let body_factor = 5
-    if (name == 'stanton'){
+    let shadows = true
+    let material = new THREE.MeshLambertMaterial( {color: colour} );
+    if (name == 'stanton' | name == "intercept"){
         body_factor = body_factor * 50
+        shadows = false
+        material = new THREE.MeshBasicMaterial( {color: colour} );
     }
     const geometry = new THREE.SphereGeometry(radius/body_factor, 32, 32); // (radius, widthSegments, heightSegments)
-    const material = new THREE.MeshBasicMaterial( {color: colour} );
     const sphere = new THREE.Mesh(geometry, material);
     sphere.geometry.name = name;
+    sphere.receiveShadow = shadows;
+    sphere.castShadow = shadows;
     sphere.translateX(coords[0]/orbit_factor);
     sphere.translateY(coords[1]/orbit_factor); // map to screen projection coods
     sphere.translateZ(coords[2]/orbit_factor);
@@ -146,6 +161,12 @@ function onDocumentDblClick(event) {
         added = []
         origin = []
         destination = []
+
+        // onscreen text
+        hud0.childNodes[0].textContent = "To begin, double-click the origin of your Quantum Travel";
+        hud1.childNodes[0].textContent = "Click and drag to rotate/pan, scroll to zoom";
+        hud2.childNodes[0].textContent = "Aaron Halo Intercept Calculator";
+
         return
     }
     if (origin.length == 0) {
@@ -185,14 +206,20 @@ function show_routes(wasClicked) {
         slctd.halo_intersect = h_int;
         new_selectable.push(slctd);
         let coords = [ h_int.x , h_int.y , h_int.z];
-        let body = make_orbital_body(5000,0x00FF00,coords,0,'int');
+        let body = make_orbital_body(1e5,0x00FF00,coords,0,'intercept');
         added.push(body.sphere)
     });
     selectable = new_selectable;
+
+    // onscreen text
+    hud0.childNodes[0].textContent = String.prototype.concat(
+        "Double-click on a QT destination, or on empty space to reset")
+    hud1.childNodes[0].textContent = String.prototype.concat(
+        "Selected QT Origin: ", wasClicked[0].object.geometry.name )
+    hud2.childNodes[0].textContent = "";
 }
 
 function select_route(wasClicked) {
-    console.log('test')
     selectable.forEach((item, index) => { item.sphere.material.transparent = false });
     added.forEach((item, index) => {
         scene.remove(item)
@@ -211,8 +238,21 @@ function select_route(wasClicked) {
         }
     })
     let coords = [ h_int.x , h_int.y , h_int.z];
-    let body = make_orbital_body(5000,0x00FF00,coords,0,'int');
-    added.push(body.sphere)
+    let body = make_orbital_body(1e5,0x00FF00,coords,0,'intercept');
+    added.push(body.sphere);
+    const dest = wasClicked[0].object.clone().position.multiplyScalar(orbit_factor)
+    const d_remain = h_int.clone().sub(dest).length()
+
+    // onscreen text
+    hud0.childNodes[0].textContent = String.prototype.concat(
+        "Double-click on a QT destination, or on empty space to reset");
+    let stringbase = hud1.childNodes[0].textContent.split('|')[0];
+    hud1.childNodes[0].textContent = String.prototype.concat( stringbase, 
+        " | Destination: ", wasClicked[0].object.geometry.name );
+    hud2.childNodes[0].textContent = String.prototype.concat( 
+        "Aaron Halo Intercept: Terminate QT with ", 
+        d_remain.toLocaleString(undefined,{'maximumFractionDigits':0}), ' km remaining')
+
 }
 
 function calc_halo_intersect(ptA, ptB) {
