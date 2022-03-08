@@ -10,7 +10,7 @@
     overflow-x: hidden; /* Disable horizontal scroll */
     padding-top: 40px; 
     transition: 0.1s; 
-    font-family: 'Courier New', monospace;
+    font-family: 'Red Hat Display', monospace;
     font-size: 18px;
     color: #818181;
 }
@@ -65,7 +65,7 @@
     background-color: black;
     opacity: 0.75;
     position: fixed;
-    font-family: 'Courier New', monospace;
+    font-family: 'Red Hat Display', monospace;
     font-weight: bold;
     font-size: 16px;
 }
