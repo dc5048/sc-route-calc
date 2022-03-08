@@ -39,8 +39,9 @@ function init() {
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
 
-    // mouse double-click event calback
+    // mouse event calbacks
     document.addEventListener('dblclick', onDocumentDblClick, false);
+    document.addEventListener('mousemove', onDocumentMouseMove, false);
 
     // cause display to resize with window
     window.addEventListener( 'resize', onWindowResize, false );
@@ -231,6 +232,27 @@ function onWindowResize(){
 function animate(t_currentframe) {
     renderer.render( scene, camera );
     requestAnimationFrame( animate );
+}
+
+function onDocumentMouseMove(event) {
+    let vector = new THREE.Vector3(( event.clientX / window.innerWidth ) * 2 - 1, 
+                                  -( event.clientY / window.innerHeight ) * 2 + 1, 
+                                     0.5);
+    vector = vector.unproject(camera);
+    let raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+    let spheres = []
+    down_selected.forEach((item,index) => { spheres.push(item.sphere) } )
+    let mousedOverSphere = raycaster.intersectObjects(spheres);
+
+    if (mousedOverSphere.length == 0) {
+        hud_popup.childNodes[0].textContent = '';
+    } else {
+        hud_popup.childNodes[0].textContent = mousedOverSphere[0].object.geometry.name;
+        hud_popup.style.position = "absolute";
+        hud_popup.style.top = (event.clientY - 40) + 'px';
+        hud_popup.style.left = (event.clientX - 20) + 'px';
+    }
+
 }
 
 function onDocumentDblClick(event) {
