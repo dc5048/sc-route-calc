@@ -101,7 +101,7 @@ function init() {
     // Micro-Tec
     coords = [22462016.306, 37185625.646, 0]
     radius = 3500; //TODO: needs real number
-    body = make_orbital_body(radius, 0xAAFFFF, coords, isPlanet,'MicroTec');
+    body = make_orbital_body(radius, 0xAAFFFF, coords, isPlanet,'MicroTech');
     selectable.push(body);
 
     // ****************
