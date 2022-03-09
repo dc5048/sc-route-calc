@@ -184,7 +184,7 @@ function make_orbital_body(radius,colour,coords,isPlanet,name) {
     let shadows = true
     let material = new THREE.MeshLambertMaterial( {color: colour} );
     if ( name == 'Stanton' ){
-        body_factor = body_factor * 50
+        body_factor = body_factor * 70
     }
     if (!isPlanet) {
         shadows = false
