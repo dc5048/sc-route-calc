@@ -2,7 +2,7 @@
 
 /* The sidepanel menu */
 .sidepanel {
-    height: 500px; /* Specify a height */
+    height: 250px; /* Specify a height */
     width: 0; /* 0 width - change this with JavaScript */
     position: fixed; /* Stay in place */
     z-index: 1; /* Stay on top */
@@ -79,6 +79,9 @@
 }
 .hud2{ 
     bottom: 36px
+}
+.hud3{ 
+    bottom: 54px
 }
 .hudpopup {
 }

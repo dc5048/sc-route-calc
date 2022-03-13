@@ -11,9 +11,9 @@
         <script src='static/js/animate.js' type='module'> </script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script>
-            /* Set the width of the sidebar to 250px (show it) */
+            /* Set the width of the sidebar */
             function openNav() {
-                mySidepanel.style.width = "300px";
+                mySidepanel.style.width = "250px";
             }
 
             /* Set the width of the sidebar to 0 (hide it) */
@@ -26,14 +26,16 @@
             <div id="mySidepanel" class="sidepanel">
                 <form autocomplete='off' class='sidepanel_form' onSubmit="return false">
                     <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+                    <label for="select_drive">QT Drive:</label>
+                    <select name="select_drive" id="select_drive"> </select>
                 </form>
-                Soon™
             </div>
             <button class="openbtn" onclick="openNav()" position=absolute style="top:0">&#9776; Controls</button>
         </div>
         <div id="hud0" class="hud0"> initializing...  </div>
         <div id="hud1" class="hud1"> ...  </div>
         <div id="hud2" class="hud2"> ...  </div>
+        <div id="hud3" class="hud3"> ...  </div>
         <div id="hud_popup" class="hudpopup"> </div>
     </body>
 </html>

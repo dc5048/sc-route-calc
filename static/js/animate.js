@@ -1,16 +1,29 @@
 import * as THREE from "https://cdn.skypack.dev/three@0.136.0";
 import { OrbitControls } from "https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js";
 
-let controls, camera, renderer, scene ;
-let selectable, down_selected, origin, destination, halo, all, added;
+let controls, camera, renderer, scene;
+let selectable, down_selected, origin, destination, d_remain, halo, all, added;
 let orbit_factor = 1000;
+let drivedata = {}
 
 init();
 requestAnimationFrame( animate );
 
 function init() {
-    // tests
-    test_calc_traveltime_real();
+    // load drive data from file
+    jQuery.getJSON('static/DriveData.json').done( function ( jsondata ) {
+        add_drive_option("None Selected")
+        jsondata.forEach((item, index) => {
+            drivedata[item.name] = {'a1':item.stageOneAccelRate * 1e-3, 
+                'a2':item.stageTwoAccelRate * 1e-3,
+                'vmax':item.driveSpeed * 1e-3};
+            add_drive_option(item.name)
+        });
+    });
+    select_drive.onchange = qt_drive_change_callback;
+
+    // setup the text display
+    init_hud()
 
     // Create the scene & background
     scene = new THREE.Scene();
@@ -51,11 +64,6 @@ function init() {
 
     // Mouse Camera Controls
     controls = new OrbitControls( camera, renderer.domElement );
-
-    // onscreen text
-    hud0.childNodes[0].textContent = "To begin, double-click the origin of your Quantum Travel";
-    hud1.childNodes[0].textContent = "Click and drag to rotate/pan, scroll to zoom";
-    hud2.childNodes[0].textContent = "Aaron Halo Intercept Calculator";
 
     selectable = [];
     all = [];
@@ -255,7 +263,22 @@ function onDocumentMouseMove(event) {
         hud_popup.style.top = (event.clientY - 40) + 'px';
         hud_popup.style.left = (event.clientX - 20) + 'px';
     }
+}
 
+function add_drive_option(name) {
+    // populates the dropdown select list
+    let opt = document.createElement('option');
+    opt.value = name;
+    opt.innerHTML = name;
+    select_drive.appendChild(opt);
+}
+
+function init_hud() {
+    // onscreen text when no selections have yet been made
+    hud3.childNodes[0].textContent = "Aaron Halo Intercept Calculator";
+    hud2.childNodes[0].textContent = "Plan your quantum jump to the asteroid belt!";
+    hud1.childNodes[0].textContent = "Click and drag to rotate/pan, scroll to zoom";
+    hud0.childNodes[0].textContent = "To begin, double-click the origin of your Quantum Travel";
 }
 
 function onDocumentDblClick(event) {
@@ -278,12 +301,9 @@ function onDocumentDblClick(event) {
         added = []
         origin = []
         destination = []
+        d_remain = []
 
-        // onscreen text
-        hud0.childNodes[0].textContent = "To begin, double-click the origin of your Quantum Travel";
-        hud1.childNodes[0].textContent = "Click and drag to rotate/pan, scroll to zoom";
-        hud2.childNodes[0].textContent = "Aaron Halo Intercept Calculator";
-
+        init_hud()
         return
     }
     if (origin.length == 0) {
@@ -336,6 +356,7 @@ function show_routes(wasClicked) {
     hud1.childNodes[0].textContent = String.prototype.concat(
         "Selected QT Origin: ", wasClicked[0].object.geometry.name )
     hud2.childNodes[0].textContent = "";
+    hud3.childNodes[0].textContent = "";
 }
 
 function select_route(wasClicked) {
@@ -354,26 +375,14 @@ function select_route(wasClicked) {
     down_selected.forEach((slctd, index) => { 
         if (slctd.sphere == wasClicked[0].object) { 
             h_int = slctd.halo_intersect;
+            destination = slctd;
         }
     })
     let coords = [ h_int.x , h_int.y , h_int.z];
     let body = make_orbital_body(1e3,0x00FF00,coords,0,0,'intercept');
     added.push(body.sphere);
     const dest = wasClicked[0].object.clone().position.multiplyScalar(orbit_factor)
-    const d_remain = h_int.clone().sub(dest).length()
-
-    // travel time
-    const atlas = {a1: 735, a2: 2433, vdrive: 151951}
-    const beacon = {a1: 610, a2: 3575, vdrive: 253252}
-    const bolon = {a1: 600, a2: 7704, vdrive: 74486}
-    const travel_time = calc_traveltime_real(beacon, d_remain);
-    console.log(calc_traveltime_real(atlas, 94487))
-    console.log(calc_traveltime_real(atlas, 192590))
-    console.log(calc_traveltime_real(atlas, 192590))
-    console.log(calc_traveltime_real(atlas, 1269866))
-    console.log(calc_traveltime_real(atlas, 31922714))
-    console.log(calc_traveltime_real(beacon, 31922714))
-    console.log(calc_traveltime_real(beacon, 31922714))
+    d_remain = h_int.clone().sub(dest).length()
 
     // onscreen text
     hud0.childNodes[0].textContent = String.prototype.concat(
@@ -381,10 +390,31 @@ function select_route(wasClicked) {
     let stringbase = hud1.childNodes[0].textContent.split('|')[0];
     hud1.childNodes[0].textContent = String.prototype.concat( stringbase, 
         " | Destination: ", wasClicked[0].object.geometry.name );
-    hud2.childNodes[0].textContent = String.prototype.concat( 
+    update_timing_text()
+    hud3.childNodes[0].textContent = String.prototype.concat( 
         "Aaron Halo Intercept: Terminate QT with ", 
         d_remain.toLocaleString(undefined,{'maximumFractionDigits':0}), ' km remaining')
+}
 
+function update_timing_text() { 
+    if (select_drive.value == "None Selected") {
+        hud2.childNodes[0].textContent = "To see a travel time estimate, choose a QT drive from the Controls menu";
+    } else {
+        let ptA = origin.sphere.position;
+        let ptB = destination.sphere.position;
+        const d_fullpath = ptA.clone().sub(ptB).length() * orbit_factor;
+        const t_travel = calc_traveltime_real(d_fullpath - d_remain, drivedata[select_drive.value]);
+        const mins = Math.floor(t_travel / 60);
+        const sec = Math.ceil(t_travel - mins * 60);
+        const msg = "Approxmiate travel time with " + select_drive.value + " QT Drive: " + mins + " min, " + sec + " sec";
+        hud2.childNodes[0].textContent = msg;
+    }
+}
+
+function qt_drive_change_callback() {
+    if (destination.length != 0) {
+        update_timing_text()
+    }
 }
 
 function calc_halo_intersect(ptA, ptB) {
@@ -428,7 +458,7 @@ function calc_halo_intersect(ptA, ptB) {
     return intersect
 }
 
-function calc_traveltime_real(drv,d) {
+function calc_traveltime_real(d, drv) {
     // https://gitlab.com/Erecco/a-study-on-quantum-travel-time/
     // pendix B, Accessed Sat Mar12, 2022
     // Calculates quantum travel time depending on drv specs and distance
@@ -460,12 +490,11 @@ function calc_traveltime_real(drv,d) {
     return t
 }
 
-function test_calc_traveltime_real(){
-    const jsondata = jQuery.getJSON('https://finder.cornerstonebase.space/GetDrives');
-    const data = JSON.parse(jsondata)
-    const atlas = {a1: 735, a2: 2433, vmax: 151951}
-    const beacon = {a1: 610, a2: 3575, vmax: 253252}
-    const bolon = {a1: 600, a2: 7704, vmax: 74486}
+function test_calc_traveltime_real(drivedata){
+    // test the function vs. verification cases from the paper
+    const atlas = drivedata.Atlas;
+    const beacon = drivedata.Beacon;
+    const bolon = drivedata.Bolon;
     const cases_in = [94487, 192590, 1269866, 31922714, 31922714, 146, 93475, 38493812];
     const cases_out = [21.75, 30.56, 73.10, 323.15, 275.66, 0.94, 15.26, 539.82];
     const cases_drives = [atlas, atlas, atlas, atlas, beacon, bolon, bolon, bolon];
