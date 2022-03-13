@@ -9,6 +9,9 @@ init();
 requestAnimationFrame( animate );
 
 function init() {
+    // tests
+    test_calc_traveltime_real();
+
     // Create the scene & background
     scene = new THREE.Scene();
     const bgcolor = 0x000000
@@ -359,6 +362,19 @@ function select_route(wasClicked) {
     const dest = wasClicked[0].object.clone().position.multiplyScalar(orbit_factor)
     const d_remain = h_int.clone().sub(dest).length()
 
+    // travel time
+    const atlas = {a1: 735, a2: 2433, vdrive: 151951}
+    const beacon = {a1: 610, a2: 3575, vdrive: 253252}
+    const bolon = {a1: 600, a2: 7704, vdrive: 74486}
+    const travel_time = calc_traveltime_real(beacon, d_remain);
+    console.log(calc_traveltime_real(atlas, 94487))
+    console.log(calc_traveltime_real(atlas, 192590))
+    console.log(calc_traveltime_real(atlas, 192590))
+    console.log(calc_traveltime_real(atlas, 1269866))
+    console.log(calc_traveltime_real(atlas, 31922714))
+    console.log(calc_traveltime_real(beacon, 31922714))
+    console.log(calc_traveltime_real(beacon, 31922714))
+
     // onscreen text
     hud0.childNodes[0].textContent = String.prototype.concat(
         "Double-click on a valid QT destination, or on anything else to reset");
@@ -412,3 +428,53 @@ function calc_halo_intersect(ptA, ptB) {
     return intersect
 }
 
+function calc_traveltime_real(drv,d) {
+    // https://gitlab.com/Erecco/a-study-on-quantum-travel-time/
+    // pendix B, Accessed Sat Mar12, 2022
+    // Calculates quantum travel time depending on drv specs and distance
+    // returns: t : travel time ( s )
+    // drv: a struct containing the following fields:
+    //      a1 : stage 1 acceleration ( km / s ^2)
+    //      a2 : stage 2 acceleration ( km / s ^2)
+    //      vmax : drv speed ( km / s )
+    // d : distance ( km )
+
+    let dc = d - (4 * drv.vmax ** 2 * (2 * drv.a1 + drv.a2)) / (3 * (drv.a1 + drv.a2) ** 2);
+    let t
+    if (dc < 0) { 
+        // drv does not reach drv.vmax
+        let z =(3 * (drv.a2 - drv.a1) ** 2 * (drv.a1 + drv.a2) ** 2 * d) /(8 * drv.vmax ** 2 * drv.a1 ** 3) - 1;
+        if (z > 1) { 
+            // (23)
+            t = 4 * drv.a1 * drv.vmax / (drv.a2 ** 2 - drv.a1 ** 2) * 
+                (( 2 * Math.cosh((-1 * Math.log(z - Math.sqrt(( z ** 2) - 1))) / 3)) - 1);
+        } else { 
+            // (22)
+            t = 4 * drv.a1 * drv.vmax / ( drv.a2 ** 2 - drv.a1 ** 2) * (2 * Math.cos (1 / 3 * Math.acos(z)) - 1);
+        }
+    } else { 
+        // drv reaches drv.vmax (16)
+        t = 4 * drv.vmax / (drv.a1 + drv.a2) + d / drv.vmax - 4 * drv.vmax * 
+            ( 2 * drv.a1 + drv.a2 ) / (3 * (drv.a1 + drv.a2) ** 2);
+    }
+    return t
+}
+
+function test_calc_traveltime_real(){
+    const jsondata = jQuery.getJSON('https://finder.cornerstonebase.space/GetDrives');
+    const data = JSON.parse(jsondata)
+    const atlas = {a1: 735, a2: 2433, vmax: 151951}
+    const beacon = {a1: 610, a2: 3575, vmax: 253252}
+    const bolon = {a1: 600, a2: 7704, vmax: 74486}
+    const cases_in = [94487, 192590, 1269866, 31922714, 31922714, 146, 93475, 38493812];
+    const cases_out = [21.75, 30.56, 73.10, 323.15, 275.66, 0.94, 15.26, 539.82];
+    const cases_drives = [atlas, atlas, atlas, atlas, beacon, bolon, bolon, bolon];
+
+    const tol = 1 // sec
+    let t
+    cases_in.forEach((item, index) => {
+        t = calc_traveltime_real(cases_drives[index], item)
+        console.assert(Math.abs(t - cases_out[index]) < tol, 
+            "Failed travel time test case " + index + ', Exepected ' + cases_out[index] + " but got " + t )
+    })
+}
